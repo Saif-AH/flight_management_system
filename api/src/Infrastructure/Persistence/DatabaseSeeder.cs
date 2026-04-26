@@ -21,6 +21,7 @@ public static class DatabaseSeeder
 
         var adminEmail = "admin@flight.com";
         var userEmail = "user@flight.com";
+        var travelerEmail = "traveler@flight.com";
 
         if (await userManager.FindByEmailAsync(adminEmail) is null)
         {
@@ -32,8 +33,12 @@ public static class DatabaseSeeder
                 EmailConfirmed = true
             };
 
-            await userManager.CreateAsync(admin, "Admin123!");
-            await userManager.AddToRoleAsync(admin, "Admin");
+            await EnsureSucceededAsync(
+                userManager.CreateAsync(admin, "Admin123!"),
+                $"Failed to seed user '{adminEmail}'.");
+            await EnsureSucceededAsync(
+                userManager.AddToRoleAsync(admin, "Admin"),
+                $"Failed to assign Admin role to '{adminEmail}'.");
         }
 
         if (await userManager.FindByEmailAsync(userEmail) is null)
@@ -46,8 +51,30 @@ public static class DatabaseSeeder
                 EmailConfirmed = true
             };
 
-            await userManager.CreateAsync(user, "User123!");
-            await userManager.AddToRoleAsync(user, "User");
+            await EnsureSucceededAsync(
+                userManager.CreateAsync(user, "User123!"),
+                $"Failed to seed user '{userEmail}'.");
+            await EnsureSucceededAsync(
+                userManager.AddToRoleAsync(user, "User"),
+                $"Failed to assign User role to '{userEmail}'.");
+        }
+
+        if (await userManager.FindByEmailAsync(travelerEmail) is null)
+        {
+            var traveler = new ApplicationUser
+            {
+                UserName = travelerEmail,
+                Email = travelerEmail,
+                FullName = "Leila Hassan",
+                EmailConfirmed = true
+            };
+
+            await EnsureSucceededAsync(
+                userManager.CreateAsync(traveler, "Traveler123!"),
+                $"Failed to seed user '{travelerEmail}'.");
+            await EnsureSucceededAsync(
+                userManager.AddToRoleAsync(traveler, "User"),
+                $"Failed to assign User role to '{travelerEmail}'.");
         }
 
         if (!await context.Airports.AnyAsync())
@@ -80,5 +107,74 @@ public static class DatabaseSeeder
 
             await context.SaveChangesAsync();
         }
+
+        if (!await context.Bookings.AnyAsync())
+        {
+            var admin = await userManager.FindByEmailAsync(adminEmail);
+            var user = await userManager.FindByEmailAsync(userEmail);
+            var traveler = await userManager.FindByEmailAsync(travelerEmail);
+
+            if (admin is null || user is null || traveler is null)
+                throw new InvalidOperationException("Seed users must exist before creating seed bookings.");
+
+            var seedFlight = await context.Flights
+                .OrderBy(x => x.DepartureTimeUtc)
+                .FirstOrDefaultAsync(
+                    x => x.Status == FlightStatus.Scheduled && x.DepartureTimeUtc > DateTime.UtcNow);
+
+            if (seedFlight is not null)
+            {
+                var bookingPlans = new[]
+                {
+                    new { UserId = user.Id, PassengerName = "Test User", SeatsRequested = 2, Status = BookingStatus.Active, BookedAtUtc = DateTime.UtcNow.AddDays(-5) },
+                    new { UserId = traveler.Id, PassengerName = "Leila Hassan", SeatsRequested = 1, Status = BookingStatus.Active, BookedAtUtc = DateTime.UtcNow.AddDays(-3) },
+                    new { UserId = admin.Id, PassengerName = "System Admin", SeatsRequested = 1, Status = BookingStatus.Cancelled, BookedAtUtc = DateTime.UtcNow.AddDays(-1) }
+                };
+
+                var bookings = new List<Booking>();
+                var remainingSeats = seedFlight.AvailableSeats;
+
+                foreach (var plan in bookingPlans)
+                {
+                    var seatsBooked = plan.Status == BookingStatus.Active
+                        ? Math.Min(plan.SeatsRequested, remainingSeats)
+                        : plan.SeatsRequested;
+
+                    if (plan.Status == BookingStatus.Active && seatsBooked <= 0)
+                        continue;
+
+                    bookings.Add(new Booking
+                    {
+                        FlightId = seedFlight.Id,
+                        UserId = plan.UserId,
+                        PassengerName = plan.PassengerName,
+                        SeatsBooked = seatsBooked,
+                        Status = plan.Status,
+                        BookedAtUtc = plan.BookedAtUtc
+                    });
+
+                    if (plan.Status == BookingStatus.Active)
+                        remainingSeats -= seatsBooked;
+                }
+
+                if (bookings.Count > 0)
+                {
+                    seedFlight.AvailableSeats = remainingSeats;
+                    seedFlight.UpdatedAtUtc = DateTime.UtcNow;
+                    context.Bookings.AddRange(bookings);
+                    await context.SaveChangesAsync();
+                }
+            }
+        }
+    }
+
+    private static async Task EnsureSucceededAsync(Task<IdentityResult> task, string errorMessage)
+    {
+        var result = await task;
+        if (result.Succeeded)
+            return;
+
+        var errors = string.Join("; ", result.Errors.Select(x => x.Description));
+        throw new InvalidOperationException($"{errorMessage} {errors}");
     }
 }
