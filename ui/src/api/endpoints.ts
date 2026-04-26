@@ -2,7 +2,14 @@ import { http } from './http';
 import type { Airport, AirportFormValues, Booking, DashboardStats, Flight, FlightFormValues, LoginRequest, LoginResponse, PagedResult } from '@/types/api';
 
 export type PageParams = { page?: number; pageSize?: number; search?: string; sortBy?: string; sortDirection?: 'asc' | 'desc' };
-export type FlightFilters = PageParams & { airportId?: string; fromDate?: string; toDate?: string; status?: string };
+export type FlightFilters = {
+  PageNumber?: number;
+  PageSize?: number;
+  Search?: string;
+  Status?: string;
+  SortBy?: string;
+  SortOrder?: 'asc' | 'desc';
+};
 export type BookingFilters = PageParams & { status?: string; flightId?: string; email?: string };
 
 type ApiPagedResult<T> = {
@@ -32,7 +39,7 @@ type ApiFlight = {
 
 const normalizePagedResult = <T>(data: ApiPagedResult<T>): PagedResult<T> => ({
   items: data.items,
-  page: data.page ?? data.pageNumber ?? 1,
+  page: data.pageNumber ?? data.page ?? 1,
   pageSize: data.pageSize,
   totalCount: data.totalCount,
   totalPages: data.totalPages ?? Math.max(Math.ceil(data.totalCount / data.pageSize), 1)
