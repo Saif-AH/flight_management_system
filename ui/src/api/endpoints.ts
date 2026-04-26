@@ -94,7 +94,6 @@ export const flightsApi = {
     const data = normalizePagedResult((await http.get<ApiPagedResult<ApiFlight>>('/flights', { params })).data);
     return { ...data, items: data.items.map(normalizeFlight) };
   },
-  upcoming: async (take = 5) => (await http.get<ApiFlight[]>('/flights/upcoming', { params: { take } })).data.map(normalizeFlight),
   create: async (payload: FlightFormValues) => normalizeFlight((await http.post<ApiFlight>('/flights', toFlightPayload(payload))).data),
   update: async (id: string, payload: FlightFormValues) => normalizeFlight((await http.put<ApiFlight>(`/flights/${id}`, toFlightPayload(payload))).data),
   remove: async (id: string) => (await http.delete(`/flights/${id}`)).data
@@ -106,5 +105,6 @@ export const bookingsApi = {
 };
 
 export const dashboardApi = {
+  upcoming: async (take = 5) => (await http.get<ApiFlight[]>('/dashboard/upcoming-flights', { params: { take } })).data.map(normalizeFlight),
   stats: async () => (await http.get<DashboardStats>('/dashboard/stats')).data
 };

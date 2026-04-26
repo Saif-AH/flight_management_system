@@ -71,9 +71,14 @@ export type Booking = {
 };
 
 export type DashboardStats = {
-  totalAirports: number;
   totalFlights: number;
-  totalBookings: number;
+  upcomingFlights: number;
+  totalAirports: number;
+  activeBookings: number;
+  scheduledFlights: number;
+  delayedFlights: number;
+  cancelledFlights: number;
+  completedFlights: number;
 };
 
 export type LoginRequest = {
