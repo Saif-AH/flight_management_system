@@ -38,7 +38,7 @@ services:
       Jwt__RefreshTokenDays: 7
       AllowedOrigins__0: http://localhost:5173
     ports:
-      - "8080:8080"
+      - "5105:8080"
 
 volumes:
   postgres_data:
