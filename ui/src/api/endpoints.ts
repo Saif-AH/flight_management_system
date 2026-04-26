@@ -10,7 +10,12 @@ export type FlightFilters = {
   SortBy?: string;
   SortOrder?: 'asc' | 'desc';
 };
-export type BookingFilters = PageParams & { status?: string; flightId?: string; email?: string };
+export type BookingFilters = {
+  PageNumber?: number;
+  PageSize?: number;
+  Search?: string;
+  Status?: string;
+};
 
 type ApiPagedResult<T> = {
   items: T[];
@@ -35,6 +40,10 @@ type ApiFlight = {
   totalSeats: number;
   availableSeats: number;
   status: Flight['status'];
+};
+
+type ApiBooking = Omit<Booking, 'status'> & {
+  status: Booking['status'] | 1 | 2 | '1' | '2';
 };
 
 const normalizePagedResult = <T>(data: ApiPagedResult<T>): PagedResult<T> => ({
@@ -72,6 +81,16 @@ const normalizeFlight = (flight: ApiFlight): Flight => ({
   bookedSeats: flight.totalSeats - flight.availableSeats
 });
 
+const normalizeBookingStatus = (status: ApiBooking['status']): Booking['status'] => {
+  if (status === 1 || status === '1' || status === 'Active') return 'Active';
+  return 'Cancelled';
+};
+
+const normalizeBooking = (booking: ApiBooking): Booking => ({
+  ...booking,
+  status: normalizeBookingStatus(booking.status)
+});
+
 const toFlightPayload = (payload: FlightFormValues) => ({
   flightNumber: payload.flightNumber,
   departureAirportId: payload.originAirportId,
@@ -105,8 +124,11 @@ export const flightsApi = {
 };
 
 export const bookingsApi = {
-  list: async (params: BookingFilters) => normalizePagedResult((await http.get<ApiPagedResult<Booking>>('/bookings', { params })).data),
-  cancel: async (id: string) => (await http.post<Booking>(`/bookings/${id}/cancel`, { reason: 'Cancelled by admin' })).data
+  list: async (params: BookingFilters) => {
+    const data = normalizePagedResult((await http.get<ApiPagedResult<ApiBooking>>('/bookings', { params })).data);
+    return { ...data, items: data.items.map(normalizeBooking) };
+  },
+  cancel: async (id: string) => normalizeBooking((await http.post<ApiBooking>(`/bookings/${id}/cancel`, { reason: 'Cancelled by admin' })).data)
 };
 
 export const dashboardApi = {

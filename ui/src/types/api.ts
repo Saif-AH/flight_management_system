@@ -54,7 +54,7 @@ export type FlightFormValues = {
   capacity: number;
 };
 
-export type BookingStatus = 'Confirmed' | 'Cancelled';
+export type BookingStatus = 'Active' | 'Cancelled';
 
 export type Booking = {
   id: string;
