@@ -49,7 +49,6 @@ const normalizeFlight = (flight: ApiFlight): Flight => ({
     name: flight.departureAirportName ?? '',
     city: '',
     country: '',
-    timezone: ''
   },
   destinationAirport: {
     id: flight.arrivalAirportId,
@@ -57,7 +56,6 @@ const normalizeFlight = (flight: ApiFlight): Flight => ({
     name: flight.arrivalAirportName ?? '',
     city: '',
     country: '',
-    timezone: ''
   },
   departureTimeUtc: flight.departureTimeUtc,
   arrivalTimeUtc: flight.arrivalTimeUtc,

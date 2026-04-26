@@ -22,11 +22,10 @@ export type Airport = {
   name: string;
   city: string;
   country: string;
-  timezone: string;
   isDeleted?: boolean;
 };
 
-export type AirportFormValues = Omit<Airport, 'id' | 'isDeleted'>;
+export type AirportFormValues = Omit<Airport, 'id' | 'isDeleted' | 'timezone'>;
 
 export type FlightStatus = 'Scheduled' | 'Delayed' | 'Cancelled' | 'Departed' | 'Arrived';
 
