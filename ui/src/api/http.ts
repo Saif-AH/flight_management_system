@@ -8,6 +8,14 @@ export const http = axios.create({ baseURL, headers: { 'Content-Type': 'applicat
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 let refreshPromise: Promise<RefreshResponse> | null = null;
+let isRedirectingToLogin = false;
+
+function logoutAndRedirectToLogin() {
+  tokenStorage.clear();
+  if (isRedirectingToLogin || window.location.pathname === '/login') return;
+  isRedirectingToLogin = true;
+  window.location.assign('/login');
+}
 
 http.interceptors.request.use((config) => {
   const token = tokenStorage.getAccessToken();
@@ -24,8 +32,7 @@ http.interceptors.response.use(
     }
     const refreshToken = tokenStorage.getRefreshToken();
     if (!refreshToken) {
-      tokenStorage.clear();
-      window.location.assign('/login');
+      logoutAndRedirectToLogin();
       return Promise.reject(error);
     }
     original._retry = true;
@@ -37,9 +44,14 @@ http.interceptors.response.use(
       })
       .finally(() => { refreshPromise = null; });
 
-    const refreshed = await refreshPromise;
-    original.headers.Authorization = `Bearer ${refreshed.accessToken}`;
-    return http(original);
+    try {
+      const refreshed = await refreshPromise;
+      original.headers.Authorization = `Bearer ${refreshed.accessToken}`;
+      return http(original);
+    } catch (refreshError) {
+      logoutAndRedirectToLogin();
+      return Promise.reject(refreshError);
+    }
   }
 );
 
