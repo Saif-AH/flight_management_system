@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
-import { CalendarCheck, Gauge, LogOut, MapPin, Plane, Ticket } from 'lucide-react';
+import { Gauge, LogOut, MapPin, Plane, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { cn } from '@/lib/utils';
